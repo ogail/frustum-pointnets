@@ -107,9 +107,9 @@ def inference(sess, ops, pc, one_hot_vec, batch_size):
     heading_residuals = np.zeros((pc.shape[0], NUM_HEADING_BIN))
     size_logits = np.zeros((pc.shape[0], NUM_SIZE_CLUSTER))
     size_residuals = np.zeros((pc.shape[0], NUM_SIZE_CLUSTER, 3))
-    scores = np.zeros((pc.shape[0],)) # 3D box score 
-   
-    ep = ops['end_points'] 
+    scores = np.zeros((pc.shape[0],)) # 3D box score
+
+    ep = ops['end_points']
     for i in range(num_batches):
         feed_dict = {\
             ops['pointclouds_pl']: pc[i*batch_size:(i+1)*batch_size,...],
@@ -139,7 +139,7 @@ def inference(sess, ops, pc, one_hot_vec, batch_size):
         heading_prob = np.max(softmax(batch_heading_scores),1) # B
         size_prob = np.max(softmax(batch_size_scores),1) # B,
         batch_scores = np.log(mask_mean_prob) + np.log(heading_prob) + np.log(size_prob)
-        scores[i*batch_size:(i+1)*batch_size] = batch_scores 
+        scores[i*batch_size:(i+1)*batch_size] = batch_scores
         # Finished computing scores
 
     heading_cls = np.argmax(heading_logits, 1) # B
@@ -160,15 +160,15 @@ def write_detection_results(result_dir, id_list, type_list, box2d_list, center_l
     if result_dir is None: return
     results = {} # map from idx to list of strings, each string is a line (without \n)
     for i in range(len(center_list)):
-        idx = id_list[i]
-        output_str = type_list[i] + " -1 -1 -10 "
+        idx = id_list[i] # detected object class
+        output_str = type_list[i] + " -1 -1 -10 " # TODO: find out what is the -1 -1 10
         box2d = box2d_list[i]
-        output_str += "%f %f %f %f " % (box2d[0],box2d[1],box2d[2],box2d[3])
+        output_str += "%f %f %f %f " % (box2d[0],box2d[1],box2d[2],box2d[3]) # 2d bbox info
         h,w,l,tx,ty,tz,ry = provider.from_prediction_to_label_format(center_list[i],
             heading_cls_list[i], heading_res_list[i],
             size_cls_list[i], size_res_list[i], rot_angle_list[i])
         score = score_list[i]
-        output_str += "%f %f %f %f %f %f %f %f" % (h,w,l,tx,ty,tz,ry,score)
+        output_str += "%f %f %f %f %f %f %f %f" % (h,w,l,tx,ty,tz,ry,score) # 3d bbox info
         if idx not in results: results[idx] = []
         results[idx].append(output_str)
 
@@ -181,7 +181,7 @@ def write_detection_results(result_dir, id_list, type_list, box2d_list, center_l
         fout = open(pred_filename, 'w')
         for line in results[idx]:
             fout.write(line+'\n')
-        fout.close() 
+        fout.close()
 
 def fill_files(output_dir, to_fill_filename_list):
     ''' Create empty files if not exist for the filelist. '''
@@ -211,7 +211,7 @@ def test_from_rgb_detection(output_filename, result_dir=None):
     print(len(TEST_DATASET))
     batch_size = BATCH_SIZE
     num_batches = int((len(TEST_DATASET)+batch_size-1)/batch_size)
-    
+
     batch_data_to_feed = np.zeros((batch_size, NUM_POINT, NUM_CHANNEL))
     batch_one_hot_to_feed = np.zeros((batch_size, 3))
     sess, ops = get_session_and_ops(batch_size=batch_size, num_point=NUM_POINT)
@@ -233,7 +233,7 @@ def test_from_rgb_detection(output_filename, result_dir=None):
         batch_sclass_pred, batch_sres_pred, batch_scores = \
             inference(sess, ops, batch_data_to_feed,
                 batch_one_hot_to_feed, batch_size=batch_size)
-	
+
         for i in range(cur_batch_size):
             ps_list.append(batch_data[i,...])
             segp_list.append(batch_output[i,...])
@@ -314,7 +314,7 @@ def test(output_filename, result_dir=None):
                 batch_one_hot_vec, batch_size=batch_size)
 
         correct_cnt += np.sum(batch_output==batch_label)
-	
+
         for i in range(batch_output.shape[0]):
             ps_list.append(batch_data[i,...])
             seg_list.append(batch_label[i,...])

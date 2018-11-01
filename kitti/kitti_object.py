@@ -14,6 +14,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(BASE_DIR)
 sys.path.append(os.path.join(ROOT_DIR, 'mayavi'))
 import kitti_util as utils
+import argparse
 
 try:
     raw_input          # Python 2
@@ -24,7 +25,7 @@ except NameError:
 class kitti_object(object):
     '''Load and parse object data into a usable format.'''
 
-    def __init__(self, root_dir, split='training'):
+    def __init__(self, root_dir, split, pred_dir=None):
         '''root_dir contains training and testing folders'''
         self.root_dir = root_dir
         self.split = split
@@ -42,6 +43,7 @@ class kitti_object(object):
         self.calib_dir = os.path.join(self.split_dir, 'calib')
         self.lidar_dir = os.path.join(self.split_dir, 'velodyne')
         self.label_dir = os.path.join(self.split_dir, 'label_2')
+        self.pred_dir = pred_dir
 
     def __len__(self):
         return self.num_samples
@@ -65,6 +67,15 @@ class kitti_object(object):
         assert(idx<self.num_samples and self.split=='training')
         label_filename = os.path.join(self.label_dir, '%06d.txt'%(idx))
         return utils.read_label(label_filename)
+
+    def get_pred_objects(self, idx):
+        assert(idx<self.num_samples and self.split=='training')
+        label_filename = os.path.join(self.pred_dir, '%06d.txt'%(idx))
+        try:
+            return utils.read_label(label_filename)
+        except:
+            print("Failed to get prediction for {}".format(idx))
+            return None
 
     def get_depth_map(self, idx):
         pass
@@ -199,13 +210,14 @@ def show_lidar_on_image(pc_velo, img, calib, img_width, img_height):
     Image.fromarray(img).show()
     return img
 
-def dataset_viz():
-    dataset = kitti_object(os.path.join(ROOT_DIR, 'dataset/KITTI/object'))
+def dataset_viz(pred_dir):
+    dataset = kitti_object(os.path.join(ROOT_DIR, 'dataset/KITTI/object'), 'training', pred_dir)
 
     for data_idx in range(len(dataset)):
         # Load data from dataset
         objects = dataset.get_label_objects(data_idx)
         objects[0].print_object()
+
         img = dataset.get_image(data_idx)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img_height, img_width, img_channel = img.shape
@@ -213,14 +225,29 @@ def dataset_viz():
         pc_velo = dataset.get_lidar(data_idx)[:,0:3]
         calib = dataset.get_calibration(data_idx)
 
-        # Draw 2d and 3d boxes on image
+        # Draw ground truth 2d and 3d boxes on image
         show_image_with_boxes(img, objects, calib, False)
-        raw_input()
-        # Show all LiDAR points. Draw 3d box in LiDAR point cloud
+
+        # Show all LiDAR points. Draw ground truth 3d box in LiDAR point cloud
         show_lidar_with_boxes(pc_velo, objects, calib, True, img_width, img_height)
+
+        # check if this instance has prediction accombined
+        preds = dataset.get_pred_objects(data_idx)
+        if preds:
+            preds[0].print_object()
+
+            # Draw prediction 2d and 3d boxes on image
+            show_image_with_boxes(img, preds, calib, False)
+
+            # Show all LiDAR points. Draw prediction 3d box in LiDAR point cloud
+            show_lidar_with_boxes(pc_velo, preds, calib, True, img_width, img_height)
         raw_input()
 
 if __name__=='__main__':
     import mayavi.mlab as mlab
     from viz_util import draw_lidar_simple, draw_lidar, draw_gt_boxes3d
-    dataset_viz()
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--pred-dir', type=str, help='Visualize provided prediction results side by side with ground truth data.')
+    args = parser.parse_args()
+    dataset_viz(args.pred_dir)
