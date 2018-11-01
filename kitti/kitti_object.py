@@ -132,14 +132,14 @@ def viz_kitti_video():
         raw_input()
     return
 
-def show_image_with_boxes(img, objects, calib, show3d=True):
+def show_image_with_boxes(img, objects, calib, show3d, color=(0,255,0)):
     ''' Show image with 2D bounding boxes '''
     img1 = np.copy(img) # for 2d bbox
     img2 = np.copy(img) # for 3d bbox
     for obj in objects:
         if obj.type=='DontCare':continue
         cv2.rectangle(img1, (int(obj.xmin),int(obj.ymin)),
-            (int(obj.xmax),int(obj.ymax)), (0,255,0), 2)
+            (int(obj.xmax),int(obj.ymax)), color, 2)
         box3d_pts_2d, box3d_pts_3d = utils.compute_box_3d(obj, calib.P)
         img2 = utils.draw_projected_box3d(img2, box3d_pts_2d)
     Image.fromarray(img1).show()
@@ -237,7 +237,7 @@ def dataset_viz(pred_dir):
             preds[0].print_object()
 
             # Draw prediction 2d and 3d boxes on image
-            show_image_with_boxes(img, preds, calib, False)
+            show_image_with_boxes(img, preds, calib, False, (255,0,0))
 
             # Show all LiDAR points. Draw prediction 3d box in LiDAR point cloud
             show_lidar_with_boxes(pc_velo, preds, calib, True, img_width, img_height)
