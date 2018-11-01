@@ -1,0 +1,15 @@
+train/eval/
+train/log_v1/
+train/log_v2/
+train/train/
+dataset/KITTI
+models/tf_ops/grouping/query_ball_point
+models/tf_ops/grouping/query_ball_point_block
+models/tf_ops/grouping/query_ball_point_cuda
+models/tf_ops/grouping/query_ball_point_grid
+models/tf_ops/grouping/selection_sort
+models/tf_ops/grouping/selection_sort_cuda
+*.o
+*.so
+*.pyc
+*.pickle
