@@ -467,7 +467,8 @@ if __name__=='__main__':
     parser.add_argument('--gen_train', action='store_true', help='Generate train split frustum data with perturbed GT 2D boxes')
     parser.add_argument('--gen_val', action='store_true', help='Generate val split frustum data with GT 2D boxes')
     parser.add_argument('--gen_val_rgb_detection', action='store_true', help='Generate val split frustum data with RGB detection 2D boxes')
-    parser.add_argument('--car_only', action='store_true', help='Only generate cars; otherwise cars, peds and cycs')
+    parser.add_argument('--car_only', action='store_true', help='Only generate cars')
+    parser.add_argument('--ped_only', action='store_true', help='Only generate pedestrians')
     args = parser.parse_args()
 
     if args.demo:
@@ -477,6 +478,9 @@ if __name__=='__main__':
     if args.car_only:
         type_whitelist = ['Car']
         output_prefix = 'frustum_caronly_'
+    if args.ped_only:
+        type_whitelist = ['Pedestrian']
+        output_prefix = 'frustum_pedonly_'
     else:
         type_whitelist = ['Car', 'Pedestrian', 'Cyclist']
         output_prefix = 'frustum_carpedcyc_'
