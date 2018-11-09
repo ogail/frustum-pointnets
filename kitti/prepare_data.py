@@ -45,11 +45,12 @@ def demo():
     import mayavi.mlab as mlab
     from viz_util import draw_lidar, draw_lidar_simple, draw_gt_boxes3d
     dataset = kitti_object(os.path.join(ROOT_DIR, 'dataset/KITTI/object'), 'training')
-    data_idx = 0
+    data_idx = 15
+    obj_idx = 1
 
     # Load data from dataset
     objects = dataset.get_label_objects(data_idx)
-    objects[0].print_object()
+    objects[obj_idx].print_object()
     img = dataset.get_image(data_idx)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img_height, img_width, img_channel = img.shape
@@ -57,11 +58,11 @@ def demo():
     pc_velo = dataset.get_lidar(data_idx)[:,0:3]
     calib = dataset.get_calibration(data_idx)
 
-    ## Draw lidar in rect camera coord
-    #print(' -------- LiDAR points in rect camera coordination --------')
-    #pc_rect = calib.project_velo_to_rect(pc_velo)
-    #fig = draw_lidar_simple(pc_rect)
-    #raw_input()
+    # # Draw lidar in rect camera coord
+    # print(' -------- LiDAR points in rect camera coordination --------')
+    # pc_rect = calib.project_velo_to_rect(pc_velo)
+    # fig = draw_lidar_simple(pc_rect)
+    # raw_input()
 
     # Draw 2d and 3d boxes on image
     print(' -------- 2D/3D bounding boxes in images --------')
@@ -82,7 +83,7 @@ def demo():
 
     # Show LiDAR points that are in the 3d box
     print(' -------- LiDAR points in a 3D bounding box --------')
-    box3d_pts_2d, box3d_pts_3d = utils.compute_box_3d(objects[0], calib.P)
+    box3d_pts_2d, box3d_pts_3d = utils.compute_box_3d(objects[obj_idx], calib.P)
     box3d_pts_3d_velo = calib.project_rect_to_velo(box3d_pts_3d)
     box3droi_pc_velo, _ = extract_pc_in_box3d(pc_velo, box3d_pts_3d_velo)
     print(('Number of points in 3d box: ', box3droi_pc_velo.shape[0]))
@@ -118,7 +119,7 @@ def demo():
     # Only display those points that fall into 2d box
     print(' -------- LiDAR points in a frustum from a 2D box --------')
     xmin,ymin,xmax,ymax = \
-        objects[0].xmin, objects[0].ymin, objects[0].xmax, objects[0].ymax
+        objects[obj_idx].xmin, objects[obj_idx].ymin, objects[obj_idx].xmax, objects[obj_idx].ymax
     boxfov_pc_velo = \
         get_lidar_in_image_fov(pc_velo, calib, xmin, ymin, xmax, ymax)
     print(('2d box FOV point num: ', boxfov_pc_velo.shape[0]))

@@ -203,7 +203,7 @@ def show_lidar_on_image(pc_velo, img, calib, img_width, img_height):
 
     for i in range(imgfov_pts_2d.shape[0]):
         depth = imgfov_pc_rect[i,2]
-        color = cmap[int(640.0/depth),:]
+        color = cmap[int(500.0/depth),:]
         cv2.circle(img, (int(np.round(imgfov_pts_2d[i,0])),
             int(np.round(imgfov_pts_2d[i,1]))),
             2, color=tuple(color), thickness=-1)
