@@ -269,7 +269,7 @@ def load_image(img_filename):
 
 def load_velo_scan(velo_filename):
     scan = np.fromfile(velo_filename, dtype=np.float32)
-    # reshape the lidar scan to group each x,y,z,val tuple together.
+    # reshape the lidar scan to group each x,y,z,intensity tuple together.
     scan = scan.reshape((-1, 4))
     # generate downsampling indecies
     downsampled = range(0, 64, 1)
