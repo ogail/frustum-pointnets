@@ -272,7 +272,7 @@ def load_velo_scan(velo_filename):
     # reshape the lidar scan to group each x,y,z,intensity tuple together.
     scan = scan.reshape((-1, 4))
     # generate downsampling indecies
-    downsampled = range(0, 64, 1)
+    downsampled = range(0, 64, 3)
     # split the provided lidar scan into 64 lines
     scan = np.array_split(scan, 64)
     # select downsampled lidar scan

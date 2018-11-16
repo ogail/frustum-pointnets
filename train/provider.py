@@ -13,10 +13,12 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(BASE_DIR)
 sys.path.append(BASE_DIR)
 sys.path.append(os.path.join(ROOT_DIR,'models'))
+sys.path.append(os.path.join(ROOT_DIR,'kitti'))
 from box_util import box3d_iou
 from model_util import g_type2class, g_class2type, g_type2onehotclass
 from model_util import g_type_mean_size
 from model_util import NUM_HEADING_BIN, NUM_SIZE_CLUSTER
+from prepare_data import read_det_file, extract_frustum_data_rgb_detection
 
 try:
     raw_input          # Python 2
@@ -70,11 +72,11 @@ def class2angle(pred_cls, residual, num_class, to_label_format=True):
     if to_label_format and angle>np.pi:
         angle = angle - 2*np.pi
     return angle
-        
+
 def size2class(size, type_name):
     ''' Convert 3D bounding box size to template class and residuals.
     todo (rqi): support multiple size clusters per type.
- 
+
     Input:
         size: numpy array of shape (3,) for (l,w,h)
         type_name: string
@@ -103,14 +105,15 @@ class FrustumDataset(object):
         '''
         Input:
             npoints: int scalar, number of points for frustum point cloud.
-            split: string, train or val
+            split: string, train, val or demo.
             random_flip: bool, in 50% randomly flip the point cloud
                 in left and right (after the frustum rotation if any)
             random_shift: bool, if True randomly shift the point cloud
                 back and forth by a random distance
             rotate_to_center: bool, whether to do frustum rotation
-            overwritten_data_path: string, specify pickled file path.
-                if None, use default path (with the split)
+            overwritten_data_path: string, specify pickled file path or folder
+                with raw data used for inference. if None, use default
+                path (with the split)
             from_rgb_detection: bool, if True we assume we do not have
                 groundtruth, just return data elements.
             one_hot: bool, if True, return one hot vector
@@ -120,11 +123,15 @@ class FrustumDataset(object):
         self.random_shift = random_shift
         self.rotate_to_center = rotate_to_center
         self.one_hot = one_hot
-        if overwritten_data_path is None:
-            overwritten_data_path = os.path.join(ROOT_DIR,
-                'kitti/frustum_carpedcyc_%s.pickle'%(split))
-
         self.from_rgb_detection = from_rgb_detection
+
+        if split == 'demo':
+            overwritten_data_path = self.demo_data_to_pickle(overwritten_data_path)
+        else:
+            if overwritten_data_path is None:
+                overwritten_data_path = os.path.join(ROOT_DIR,
+                    'kitti/frustum_carpedcyc_%s.pickle'%(split))
+
         if from_rgb_detection:
             with open(overwritten_data_path,'rb') as fp:
                 self.id_list = pickle.load(fp)
@@ -132,7 +139,7 @@ class FrustumDataset(object):
                 self.input_list = pickle.load(fp)
                 self.type_list = pickle.load(fp)
                 # frustum_angle is clockwise angle from positive x-axis
-                self.frustum_angle_list = pickle.load(fp) 
+                self.frustum_angle_list = pickle.load(fp)
                 self.prob_list = pickle.load(fp)
         else:
             with open(overwritten_data_path,'rb') as fp:
@@ -145,7 +152,25 @@ class FrustumDataset(object):
                 self.heading_list = pickle.load(fp)
                 self.size_list = pickle.load(fp)
                 # frustum_angle is clockwise angle from positive x-axis
-                self.frustum_angle_list = pickle.load(fp) 
+                self.frustum_angle_list = pickle.load(fp)
+
+    def demo_data_to_pickle(self, overwritten_data_path):
+        # specify output directory for the pickled input data
+        out_dir = os.path.join(overwritten_data_path, 'frustum_carpedcyc_demo.pickle')
+
+        # specify directory for rgb detections file
+        det_filename = os.path.join(os.path.join(overwritten_data_path, 'demo'), 'rgb_detection_demo.txt')
+
+        # extract and save frustums from the inpu demo data
+        extract_frustum_data_rgb_detection(\
+            det_filename,
+            'demo',
+            os.path.join(overwritten_data_path, 'frustum_carpedcyc_demo.pickle'),
+            viz=False,
+            type_whitelist=['Car', 'Pedestrian', 'Cyclist'],
+            dataset_dir=overwritten_data_path)
+
+        return out_dir
 
     def __len__(self):
             return len(self.input_list)
@@ -176,9 +201,9 @@ class FrustumDataset(object):
                 return point_set, rot_angle, self.prob_list[index], one_hot_vec
             else:
                 return point_set, rot_angle, self.prob_list[index]
-        
+
         # ------------------------------ LABELS ----------------------------
-        seg = self.label_list[index] 
+        seg = self.label_list[index]
         seg = seg[choice]
 
         # Get center point of 3D box
@@ -238,7 +263,7 @@ class FrustumDataset(object):
             self.box3d_list[index][6,:])/2.0
         return rotate_pc_along_y(np.expand_dims(box3d_center,0), \
             self.get_center_view_rot_angle(index)).squeeze()
-        
+
     def get_center_view_box3d(self, index):
         ''' Frustum rotation of 3D bounding box corners. '''
         box3d = self.box3d_list[index]
@@ -322,8 +347,8 @@ def compute_box3d_iou(center_pred,
     size_residual = np.vstack([size_residuals[i,size_class[i],:] \
         for i in range(batch_size)])
 
-    iou2d_list = [] 
-    iou3d_list = [] 
+    iou2d_list = []
+    iou3d_list = []
     for i in range(batch_size):
         heading_angle = class2angle(heading_class[i],
             heading_residual[i], NUM_HEADING_BIN)
@@ -336,7 +361,7 @@ def compute_box3d_iou(center_pred,
         corners_3d_label = get_3d_box(box_size_label,
             heading_angle_label, center_label[i])
 
-        iou_3d, iou_2d = box3d_iou(corners_3d, corners_3d_label) 
+        iou_3d, iou_2d = box3d_iou(corners_3d, corners_3d_label)
         iou3d_list.append(iou_3d)
         iou2d_list.append(iou_2d)
     return np.array(iou2d_list, dtype=np.float32), \
@@ -353,7 +378,7 @@ def from_prediction_to_label_format(center, angle_class, angle_res,\
     return h,w,l,tx,ty,tz,ry
 
 if __name__=='__main__':
-    import mayavi.mlab as mlab 
+    import mayavi.mlab as mlab
     sys.path.append(os.path.join(ROOT_DIR, 'mayavi'))
     from viz_util import draw_lidar, draw_gt_boxes3d
     median_list = []

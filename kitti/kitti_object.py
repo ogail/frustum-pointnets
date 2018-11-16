@@ -35,6 +35,8 @@ class kitti_object(object):
             self.num_samples = 7481
         elif split == 'testing':
             self.num_samples = 7518
+        elif split == 'demo':
+            self.num_samples = 0
         else:
             print('Unknown split: %s' % (split))
             exit(-1)
@@ -69,7 +71,6 @@ class kitti_object(object):
         return utils.read_label(label_filename)
 
     def get_pred_objects(self, idx):
-        assert(idx<self.num_samples and self.split=='training')
         label_filename = os.path.join(self.pred_dir, '%06d.txt'%(idx))
         try:
             return utils.read_label(label_filename)
@@ -210,14 +211,11 @@ def show_lidar_on_image(pc_velo, img, calib, img_width, img_height):
     Image.fromarray(img).show()
     return img
 
-def dataset_viz(pred_dir):
-    dataset = kitti_object(os.path.join(ROOT_DIR, 'dataset/KITTI/object'), 'training', pred_dir)
+def dataset_viz(pred_dir, split='training', dataset_dir=os.path.join(ROOT_DIR, 'dataset/KITTI/object')):
+    dataset = kitti_object(dataset_dir, split, pred_dir)
 
     for data_idx in range(len(dataset)):
         # Load data from dataset
-        objects = dataset.get_label_objects(data_idx)
-        objects[0].print_object()
-
         img = dataset.get_image(data_idx)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img_height, img_width, img_channel = img.shape
@@ -225,11 +223,15 @@ def dataset_viz(pred_dir):
         pc_velo = dataset.get_lidar(data_idx)[:,0:3]
         calib = dataset.get_calibration(data_idx)
 
-        # Draw ground truth 2d and 3d boxes on image
-        show_image_with_boxes(img, objects, calib, False)
+        if split == 'training':
+            objects = dataset.get_label_objects(data_idx)
+            objects[0].print_object()
 
-        # Show all LiDAR points. Draw ground truth 3d box in LiDAR point cloud
-        show_lidar_with_boxes(pc_velo, objects, calib, True, img_width, img_height)
+            # Draw ground truth 2d and 3d boxes on image
+            show_image_with_boxes(img, objects, calib, False)
+
+            # Show all LiDAR points. Draw ground truth 3d box in LiDAR point cloud
+            show_lidar_with_boxes(pc_velo, objects, calib, True, img_width, img_height)
 
         # check if this instance has prediction accombined
         preds = dataset.get_pred_objects(data_idx)
@@ -249,5 +251,7 @@ if __name__=='__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--pred-dir', type=str, help='Visualize provided prediction results side by side with ground truth data.')
+    parser.add_argument('--split', type=str, help='Split name of the data')
+    parser.add_argument('--dataset-dir', type=str, help='dataset directory')
     args = parser.parse_args()
-    dataset_viz(args.pred_dir)
+    dataset_viz(args.pred_dir, args.split, args.dataset_dir)
