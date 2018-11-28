@@ -84,10 +84,10 @@ class Calibration(object):
         else:
             calibs = self.read_calib_file(calib_filepath)
         # Projection matrix from rect camera coord to image2 coord
-        self.P = calibs['P2']
+        self.P = calibs['P0']
         self.P = np.reshape(self.P, [3,4])
         # Rigid transform from Velodyne coord to reference camera coord
-        self.V2C = calibs['Tr_velo_to_cam']
+        self.V2C = calibs['Tr_velo_to_cam0']
         self.V2C = np.reshape(self.V2C, [3,4])
         self.C2V = inverse_rigid_trans(self.V2C)
         # Rotation from reference camera coord to rect camera coord
@@ -272,15 +272,15 @@ def load_velo_scan(velo_filename):
     # reshape the lidar scan to group each x,y,z,intensity tuple together.
     scan = scan.reshape((-1, 4))
     # generate downsampling indecies
-    downsampled = range(0, 64, 3)
+    # downsampled = range(0, 64, 3)
     # split the provided lidar scan into 64 lines
-    scan = np.array_split(scan, 64)
+    # scan = np.array_split(scan, 64)
     # select downsampled lidar scan
-    scan = [scan[i] for i in downsampled]
+    # scan = [scan[i] for i in downsampled]
     # flatten the selected lines into one list
-    scan = [item for sublist in scan for item in sublist]
+    # scan = [item for sublist in scan for item in sublist]
     # convert python list to numpy array
-    scan = np.array(scan)
+    # scan = np.array(scan)
     return scan
 
 def project_to_image(pts_3d, P):
@@ -389,11 +389,11 @@ def draw_projected_box3d(image, qs, color=(255,255,255), thickness=2):
        # Ref: http://docs.enthought.com/mayavi/mayavi/auto/mlab_helper_functions.html
        i,j=k,(k+1)%4
        # use LINE_AA for opencv3
-       cv2.line(image, (qs[i,0],qs[i,1]), (qs[j,0],qs[j,1]), color, thickness, cv2.CV_AA)
+       cv2.line(image, (qs[i,0],qs[i,1]), (qs[j,0],qs[j,1]), color, thickness, cv2.LINE_AA)
 
        i,j=k+4,(k+1)%4 + 4
-       cv2.line(image, (qs[i,0],qs[i,1]), (qs[j,0],qs[j,1]), color, thickness, cv2.CV_AA)
+       cv2.line(image, (qs[i,0],qs[i,1]), (qs[j,0],qs[j,1]), color, thickness, cv2.LINE_AA)
 
        i,j=k,k+4
-       cv2.line(image, (qs[i,0],qs[i,1]), (qs[j,0],qs[j,1]), color, thickness, cv2.CV_AA)
+       cv2.line(image, (qs[i,0],qs[i,1]), (qs[j,0],qs[j,1]), color, thickness, cv2.LINE_AA)
     return image

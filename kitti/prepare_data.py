@@ -42,21 +42,25 @@ def extract_pc_in_box2d(pc, box2d):
     return pc[box2d_roi_inds,:], box2d_roi_inds
 
 def demo():
-    import mayavi.mlab as mlab
-    from viz_util import draw_lidar, draw_lidar_simple, draw_gt_boxes3d
-    dataset = kitti_object(os.path.join(ROOT_DIR, 'dataset/KITTI/object'), 'training')
-    data_idx = 15
-    obj_idx = 1
+    # import mayavi.mlab as mlab
+    # from viz_util import draw_lidar, draw_lidar_simple, draw_gt_boxes3d
+    dataset = kitti_object(os.path.join(ROOT_DIR, 'kitti/samples'), 'demo')
+    data_idx = 0
+    obj_idx = 0
 
     # Load data from dataset
-    objects = dataset.get_label_objects(data_idx)
-    objects[obj_idx].print_object()
+    # objects = dataset.get_label_objects(data_idx)
+    # objects[obj_idx].print_object()
     img = dataset.get_image(data_idx)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img_height, img_width, img_channel = img.shape
-    print(('Image shape: ', img.shape))
     pc_velo = dataset.get_lidar(data_idx)[:,0:3]
     calib = dataset.get_calibration(data_idx)
+
+    # Visualize LiDAR points on images
+    print(' -------- LiDAR points projected to image plane --------')
+    show_lidar_on_image(pc_velo, img, calib, img_width, img_height)
+    raw_input()
 
     # # Draw lidar in rect camera coord
     # print(' -------- LiDAR points in rect camera coordination --------')
@@ -74,11 +78,6 @@ def demo():
     #show_lidar_with_boxes(pc_velo, objects, calib)
     #raw_input()
     show_lidar_with_boxes(pc_velo, objects, calib, True, img_width, img_height)
-    raw_input()
-
-    # Visualize LiDAR points on images
-    print(' -------- LiDAR points projected to image plane --------')
-    show_lidar_on_image(pc_velo, img, calib, img_width, img_height)
     raw_input()
 
     # Show LiDAR points that are in the 3d box
@@ -466,47 +465,20 @@ def write_2d_rgb_detection(det_filename, split, result_dir):
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--demo', action='store_true', help='Run demo.')
-    parser.add_argument('--gen_train', action='store_true', help='Generate train split frustum data with perturbed GT 2D boxes')
-    parser.add_argument('--gen_val', action='store_true', help='Generate val split frustum data with GT 2D boxes')
-    parser.add_argument('--gen_val_rgb_detection', action='store_true', help='Generate val split frustum data with RGB detection 2D boxes')
-    parser.add_argument('--car_only', action='store_true', help='Only generate cars')
-    parser.add_argument('--ped_only', action='store_true', help='Only generate pedestrians')
+    parser.add_argument('--rgb-det-file', type=str, help='path to RGB detections file')
+    parser.add_argument('--split-name', type=str, help='name of the dataset split')
+    parser.add_argument('--output-file', type=str, help='name of output pickle file')
+    parser.add_argument('--input-dir', type=str, help='dataset input directory')
     args = parser.parse_args()
 
     if args.demo:
         demo()
         exit()
 
-    if args.car_only:
-        type_whitelist = ['Car']
-        output_prefix = 'frustum_caronly_'
-    if args.ped_only:
-        type_whitelist = ['Pedestrian']
-        output_prefix = 'frustum_pedonly_'
+    type_whitelist = ['Car', 'Pedestrian', 'Cyclist']
+    output_prefix = 'frustum_carpedcyc_'
+    if args.rgb_det_file:
+        extract_frustum_data_rgb_detection(args.rgb_det_file, args.split_name, args.output_file, viz=False, type_whitelist=type_whitelist, dataset_dir=args.input_dir)
     else:
-        type_whitelist = ['Car', 'Pedestrian', 'Cyclist']
-        output_prefix = 'frustum_carpedcyc_'
-
-    if args.gen_train:
-        extract_frustum_data(\
-            os.path.join(BASE_DIR, 'image_sets/train.txt'),
-            'training',
-            os.path.join(BASE_DIR, output_prefix+'train.pickle'),
-            viz=False, perturb_box2d=True, augmentX=5,
-            type_whitelist=type_whitelist)
-
-    if args.gen_val:
-        extract_frustum_data(\
-            os.path.join(BASE_DIR, 'image_sets/val.txt'),
-            'training',
-            os.path.join(BASE_DIR, output_prefix+'val.pickle'),
-            viz=False, perturb_box2d=False, augmentX=1,
-            type_whitelist=type_whitelist)
-
-    if args.gen_val_rgb_detection:
-        extract_frustum_data_rgb_detection(\
-            os.path.join(BASE_DIR, 'rgb_detections/rgb_detection_val.txt'),
-            'training',
-            os.path.join(BASE_DIR, output_prefix+'val_rgb_detection.pickle'),
-            viz=False,
-            type_whitelist=type_whitelist)
+        extract_frustum_data(os.path.join(BASE_DIR, 'image_sets/train.txt'), 'training', os.path.join(BASE_DIR, output_prefix+'train.pickle'), viz=False, perturb_box2d=True, augmentX=5, type_whitelist=type_whitelist)
+        extract_frustum_data(os.path.join(BASE_DIR, 'image_sets/val.txt'), 'training', os.path.join(BASE_DIR, output_prefix+'val.pickle'), viz=False, perturb_box2d=False, augmentX=1, type_whitelist=type_whitelist)

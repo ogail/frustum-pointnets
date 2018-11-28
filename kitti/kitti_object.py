@@ -36,12 +36,12 @@ class kitti_object(object):
         elif split == 'testing':
             self.num_samples = 7518
         elif split == 'demo':
-            self.num_samples = 0
+            self.num_samples = 188
         else:
             print('Unknown split: %s' % (split))
             exit(-1)
 
-        self.image_dir = os.path.join(self.split_dir, 'image_2')
+        self.image_dir = os.path.join(self.split_dir, 'image_0')
         self.calib_dir = os.path.join(self.split_dir, 'calib')
         self.lidar_dir = os.path.join(self.split_dir, 'velodyne')
         self.label_dir = os.path.join(self.split_dir, 'label_2')
@@ -194,7 +194,7 @@ def show_lidar_with_boxes(pc_velo, objects, calib,
 def show_lidar_on_image(pc_velo, img, calib, img_width, img_height):
     ''' Project LiDAR points to image '''
     imgfov_pc_velo, pts_2d, fov_inds = get_lidar_in_image_fov(pc_velo,
-        calib, 0, 0, img_width, img_height, True)
+        calib, 0, 0, img_width, img_height, True, 0.0)
     imgfov_pts_2d = pts_2d[fov_inds,:]
     imgfov_pc_rect = calib.project_velo_to_rect(imgfov_pc_velo)
 
@@ -204,7 +204,8 @@ def show_lidar_on_image(pc_velo, img, calib, img_width, img_height):
 
     for i in range(imgfov_pts_2d.shape[0]):
         depth = imgfov_pc_rect[i,2]
-        color = cmap[int(500.0/depth),:]
+        # color = cmap[int(160.0/depth),:]
+        color = cmap[100,:]
         cv2.circle(img, (int(np.round(imgfov_pts_2d[i,0])),
             int(np.round(imgfov_pts_2d[i,1]))),
             2, color=tuple(color), thickness=-1)
@@ -239,14 +240,14 @@ def dataset_viz(pred_dir, split='training', dataset_dir=os.path.join(ROOT_DIR, '
             preds[0].print_object()
 
             # Draw prediction 2d and 3d boxes on image
-            show_image_with_boxes(img, preds, calib, False, (255,0,0))
+            show_image_with_boxes(img, preds, calib, True, (255,0,0))
 
             # Show all LiDAR points. Draw prediction 3d box in LiDAR point cloud
-            show_lidar_with_boxes(pc_velo, preds, calib, True, img_width, img_height)
+            # show_lidar_with_boxes(pc_velo, preds, calib, True, img_width, img_height)
         raw_input()
 
 if __name__=='__main__':
-    import mayavi.mlab as mlab
+    # import mayavi.mlab as mlab
     from viz_util import draw_lidar_simple, draw_lidar, draw_gt_boxes3d
 
     parser = argparse.ArgumentParser()

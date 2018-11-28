@@ -38,7 +38,7 @@ Currently, we support training and testing of the Frustum PointNets models as we
 ### Prepare Training Data
 In this step we convert original KITTI data to organized formats for training our Frustum PointNets. <b>NEW:</b> You can also directly download the prepared data files <a href="https://shapenet.cs.stanford.edu/media/frustum_data.zip" target="_blank">HERE (960MB)</a> -- to support training and evaluation, just unzip the file and move the `*.pickle` files to the `kitti` folder.
 
-Firstly, you need to download the <a href="http://www.cvlibs.net/datasets/kitti/eval_object.php?obj_benchmark=3d" target="_blank">KITTI 3D object detection dataset</a>, including left color images, Velodyne point clouds, camera calibration matrices, and training labels. Make sure the KITTI data is organized as required in `dataset/README.md`. You can run `python kitti/kitti_object.py` to see whether data is downloaded and stored properly. If everything is fine, you should see image and 3D point cloud visualizations of the data. 
+Firstly, you need to download the <a href="http://www.cvlibs.net/datasets/kitti/eval_object.php?obj_benchmark=3d" target="_blank">KITTI 3D object detection dataset</a>, including left color images, Velodyne point clouds, camera calibration matrices, and training labels. Make sure the KITTI data is organized as required in `dataset/README.md`. You can run `python kitti/kitti_object.py` to see whether data is downloaded and stored properly. If everything is fine, you should see image and 3D point cloud visualizations of the data.
 
 Then to prepare the data, simply run: (warning: this step will generate around 4.7GB data as pickle files)
 
@@ -56,7 +56,7 @@ To start training (on GPU 0) the Frustum PointNets model, just run the following
 
     CUDA_VISIBLE_DEVICES=0 sh scripts/command_train_v1.sh
 
-You can run `scripts/command_train_v2.sh` to trian the v2 model as well. The training statiscs and checkpoints will be stored at `train/log_v1` (or `train/log_v2` if it is a v2 model). Run `python train/train.py -h` to see more options of training. 
+You can run `scripts/command_train_v2.sh` to trian the v2 model as well. The training statiscs and checkpoints will be stored at `train/log_v1` (or `train/log_v2` if it is a v2 model). Run `python train/train.py -h` to see more options of training.
 
 <b>NEW:</b> We have also prepared some pretrained snapshots for both the v1 and v2 models. You can find them <a href="https://shapenet.cs.stanford.edu/media/frustum_pointnets_snapshots.zip" target="_blank">HERE (40MB)</a> -- to support evaluation script, you just need to unzip the file and move the `log_*` folders to the `train` folder.
 
@@ -80,3 +80,27 @@ Our code is released under the Apache 2.0 license (see LICENSE file for details)
 
 - Add a demo script to run inference of Frustum PointNets based on raw input data.
 - Add related scripts for SUNRGBD dataset
+
+### Running predictions on raw Marble data:
+- Ask Zac to extarct the data in same format that Scale asks for (but ask him for Ogail's version which produces Velodyne data in world frame)
+- Prepare this data for Frustum-PointNet
+```
+$ python kitti/marble_to_kitti.py --input-dir ~/marble_dat/ --output-dir ~/tmp && cp -R ~/tmp/* ~/workspace/frustum-pointnets/kitti/samples/demo/ && python ./kitti/prepare_data.py --demo
+```
+- Produce 2D detections
+```
+$ python3 ../tensorflow-yolo-v3/demo_frozen.py \
+  --input_img ./kitti/samples/demo/image_0/ \
+  --output_dir ~/pred \
+  --output_file ./kitti/samples/rgb_detection.txt \
+  --class_names /media/ogail/storage/ml_models/object_detection/yolo_2018_06_04/model.names \
+  --model /media/ogail/storage/ml_models/object_detection/yolo_2018_06_04/model.pb
+```
+- Run inference
+```
+$ bash ./scripts/command_inference_v1.sh <MODEL_CHECKPOINT>
+```
+- Visualize predictions
+```
+$ bash ./scripts/command_vis_preds.sh <INFERENCE_RESULTS>
+```
